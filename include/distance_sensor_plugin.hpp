@@ -22,7 +22,7 @@ namespace monke_plugins
 
         std::string connected_name;
         std::string connected_link;
-        std::vector<std::string> entity_names;
+        // std::vector<std::string> entity_names;
 
 
         bool PluginActive = true; //whether to turn joint creation on or off. turning off while joint is created causes joint to be destroyed

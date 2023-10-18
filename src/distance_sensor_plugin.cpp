@@ -50,22 +50,25 @@ void DistancePlugin::Configure(const gz::sim::Entity &_entity,
         if(!(read_sdf<std::string>(_sdf,"output_topic","/distance_sensor_plugin/sensor"))){
             return;
         }
-        this->dataPtr->sensor_output_topic= *read_sdf<std::string>(_sdf,"output_topic");
+        this->dataPtr->sensor_output_topic= *read_sdf<std::string>(_sdf,"output_topic","/distance_sensor_plugin/sensor");
         
         this->dataPtr->publisher = std::make_unique<gz::transport::Node::Publisher>(this->dataPtr->transport_node->Advertise<gz::msgs::Contacts>(this->dataPtr->sensor_output_topic));
 
         if(!(read_sdf<std::string>(_sdf,"enable_topic","/distance_sensor_plugin/enable"))){
             return;
         }
-        this->dataPtr->enable_input_topic= *read_sdf<std::string>(_sdf,"enable_topic");
+        this->dataPtr->enable_input_topic= *read_sdf<std::string>(_sdf,"enable_topic","/distance_sensor_plugin/enable");
         std::function<void(const gz::msgs::Boolean &)> callback = [this](gz::msgs::Boolean msg){this->dataPtr->PluginActive=msg.data();};
         this->dataPtr->transport_node->Subscribe<gz::msgs::Boolean>(this->dataPtr->enable_input_topic,callback);
 
-        if(!(read_sdf<std::string>(_sdf,"entities"))){
+        if(!(read_sdf<std::string>(_sdf,"entity"))){
             return;
         }
-        this->dataPtr->entity_names.push_back(*read_sdf<std::string>(_sdf,"entities"));
-
+        if(read_sdf<std::string>(_sdf,"entity_link")){
+            return;
+        }
+        this->dataPtr->distance.push_back(std::pair<std::string,std::string>(*read_sdf<std::string>(_sdf,"entity"),*read_sdf<std::string>(_sdf,"entity_link")));
+        gzwarn << " distance size [" << this->dataPtr->distance.size() << "]\n\n";
         if(!(read_sdf<double>(_sdf,"min_dist"))){
             return;
         }
@@ -86,7 +89,7 @@ const gz::sim::EntityComponentManager &_ecm){
 
     auto link = gz::sim::Link(base_model.LinkByName(_ecm,this->dataPtr->connected_link));
     auto pose = *link.WorldPose(_ecm);
-
+    gzmsg << "number of elements found [" << this->dataPtr->distance.size() << "]\n";
 
 
     for(auto name: this->dataPtr->distance){
@@ -96,6 +99,7 @@ const gz::sim::EntityComponentManager &_ecm){
 
         double dist = sqrt((pose.X()-pose2.X())+(pose.Y()-pose2.Y())+(pose.Z()-pose2.Z()));
 
+        gzmsg << "distance to entity[" << name.first <<"] : " << dist;
 
         if(dist <  this->dataPtr->min_dist){
             gz::msgs::Contacts msg;
@@ -117,6 +121,7 @@ const gz::sim::EntityComponentManager &_ecm){
                 std::to_string(msg.contact(0).collision1().id()) << " vs " << std::to_string(e1.id()) << " | " <<
                 std::to_string(msg.contact(0).collision2().id()) << " vs " << std::to_string(e2.id()); 
             }
+            gzwarn << "entity within range, sending message";
 
 
             this->dataPtr->publisher->Publish(msg);

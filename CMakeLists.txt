@@ -34,7 +34,7 @@ target_link_libraries(DistanceSensor
 
 
 install(TARGETS DistanceSensor
-  DESTINATION LIB/${PROJECT_NAME}
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 configure_file("hooks/garden_environment.sh.in" "hooks/garden_environment.sh")
